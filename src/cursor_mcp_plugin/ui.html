@@ -1,383 +1,735 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Cursor MCP Plugin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Figma Plugin v3.4</title>
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
-        margin: 0;
-        padding: 20px;
-        color: #e0e0e0;
-        background-color: #1e1e1e;
+      :root {
+        --bg: #ffffff;
+        --bg-subtle: #f7f7f8;
+        --card: #ffffff;
+        --border: #e7e7e9;
+        --border-strong: #d9d9de;
+        --text: #111113;
+        --text-2: #5b5b66;
+        --text-3: #8e8e99;
+        --primary: #0d99ff;
+        --primary-hover: #0b8ce6;
+        --primary-active: #0980d2;
+        --primary-soft: #eaf5ff;
+        --success: #14ae5c;
+        --success-bg: #e6f9ec;
+        --success-border: #b9e9c7;
+        --success-text: #0e7a40;
+        --danger: #e5484d;
+        --danger-bg: #fdecec;
+        --danger-border: #f5c0c2;
+        --danger-text: #b42326;
+        --info-bg: #eaf2ff;
+        --info-border: #bfd6ff;
+        --info-text: #175cd3;
+        --neutral-bg: #f4f4f5;
+        --code-bg: #1e1e22;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+        --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+        --focus-ring: 0 0 0 3px rgba(13, 153, 255, 0.18);
       }
 
-      .container {
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: var(--text);
+        background: var(--bg);
+        font-size: 13px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Top Figma accent line */
+      .accent-bar {
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          #f24e1e 0%,
+          #ff7262 20%,
+          #a259ff 40%,
+          #1abcfe 60%,
+          #0acf83 80%
+        );
+      }
+
+      .app {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        min-height: 100%;
+        max-width: 360px;
+        margin: 0 auto;
       }
 
-      h1 {
-        font-size: 16px;
+      /* ---------- Header ---------- */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 16px 14px 16px;
+      }
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0d99ff 0%, #7a5cff 55%, #b16cff 100%);
+        box-shadow: 0 4px 10px rgba(13, 153, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+        color: #fff;
+      }
+      .brand-text { flex: 1; min-width: 0; }
+      .brand-text h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .version-pill {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: var(--neutral-bg);
+        border: 1px solid var(--border);
+        color: var(--text-2);
+        padding: 2px 7px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .brand-text p {
+        margin: 3px 0 0 0;
+        font-size: 12px;
+        color: var(--text-2);
+        line-height: 1.4;
+      }
+      .live-dot-wrap {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-shrink: 0;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 10px 5px 8px;
+        font-size: 11px;
         font-weight: 600;
+        color: var(--text-2);
+      }
+      .dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #c4c4cc;
+        position: relative;
+      }
+      .live-dot-wrap.online { color: var(--success-text); border-color: var(--success-border); background: var(--success-bg); }
+      .live-dot-wrap.online .dot { background: var(--success); }
+      .live-dot-wrap.online .dot::after {
+        content: "";
+        position: absolute; inset: -4px;
+        border-radius: 50%;
+        border: 2px solid var(--success);
+        opacity: 0.35;
+        animation: ping 1.6s cubic-bezier(0,0,0.2,1) infinite;
+      }
+      .live-dot-wrap.connecting { color: var(--info-text); border-color: var(--info-border); background: var(--info-bg); }
+      .live-dot-wrap.connecting .dot { background: var(--primary); animation: blink 1s infinite; }
+      @keyframes ping { 0% { transform: scale(0.6); opacity: 0.5; } 80%, 100% { transform: scale(1.2); opacity: 0; } }
+      @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+      /* ---------- Main ---------- */
+      main { padding: 14px 16px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+      .tab-content { display: flex; flex-direction: column; gap: 12px; animation: fadeUp 0.22s ease; }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      .card-pad { padding: 14px; }
+      .card-header {
+        display: flex; align-items: center; justify-content: space-between;
         margin-bottom: 10px;
-        color: #ffffff;
       }
-
-      h2 {
-        font-size: 14px;
-        font-weight: 600;
-        margin-top: 20px;
-        margin-bottom: 8px;
-        color: #ffffff;
+      .card-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin: 0;
+        display: flex; align-items: center; gap: 6px;
       }
+      .card-title svg { opacity: 0.7; }
 
-      button {
-        background-color: #18a0fb;
-        border: none;
-        color: white;
-        padding: 8px 12px;
+      /* Status */
+      .status {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 12px 13px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        border: 1px solid;
+      }
+      .status-icon {
+        width: 26px; height: 26px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .status strong { font-weight: 700; }
+      .status code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        background: rgba(0,0,0,0.06);
+        padding: 1px 5px;
+        border-radius: 5px;
+      }
+      .status.connected {
+        background: var(--success-bg);
+        border-color: var(--success-border);
+        color: #114d2a;
+      }
+      .status.connected .status-icon { background: var(--success); color: #fff; }
+      .status.disconnected {
+        background: #fafafa;
+        border-color: var(--border);
+        color: var(--text-2);
+      }
+      .status.disconnected .status-icon { background: #e9e9ec; color: #6b6b76; }
+      .status.info {
+        background: var(--info-bg);
+        border-color: var(--info-border);
+        color: #143a8a;
+      }
+      .status.info .status-icon { background: var(--primary); color: #fff; }
+      .status-message { flex: 1; min-width: 0; word-break: break-word; }
+      .status-hint {
+        margin-top: 6px;
+        font-size: 11.5px;
+        opacity: 0.9;
+      }
+      .status-hint code {
+        display: inline-block;
+        margin-top: 4px;
+        background: #111113;
+        color: #e8e8ea;
+        padding: 4px 8px;
         border-radius: 6px;
+        font-size: 11px;
+      }
+
+      /* Channel chip */
+      .channel-row {
+        display: flex; align-items: center; gap: 8px;
         margin-top: 8px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.2s;
+        flex-wrap: wrap;
+      }
+      .channel-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px; font-weight: 600;
+        background: #111113; color: #fff;
+        padding: 4px 9px;
+        border-radius: 999px;
+        letter-spacing: 0.02em;
+      }
+      .channel-chip .pulse {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 0 3px rgba(74,222,128,0.25);
       }
 
-      button:hover {
-        background-color: #0d8ee0;
-      }
-
-      button.secondary {
-        background-color: #3d3d3d;
-        color: #e0e0e0;
-      }
-
-      button.secondary:hover {
-        background-color: #4d4d4d;
-      }
-
-      button:disabled {
-        background-color: #333333;
-        color: #666666;
-        cursor: not-allowed;
-      }
-
-      input {
-        border: 1px solid #444444;
-        border-radius: 4px;
-        padding: 8px;
-        margin-bottom: 12px;
-        font-size: 14px;
-        width: 100%;
-        box-sizing: border-box;
-        background-color: #2d2d2d;
-        color: #e0e0e0;
-      }
-
+      /* Form */
       label {
         display: block;
-        margin-bottom: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #cccccc;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-2);
       }
+      .input-group { position: relative; }
+      .input-prefix {
+        position: absolute;
+        left: 11px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        color: var(--text-3);
+        font-family: ui-monospace, monospace;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      input[type="number"], input[type="text"] {
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        padding: 9px 11px;
+        font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
+        background: #fff;
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 600;
+      }
+      input[type="number"] { padding-left: 116px; }
+      input:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+      input:disabled { background: var(--bg-subtle); color: var(--text-3); cursor: not-allowed; }
+      .field-hint {
+        margin: 7px 0 0 0;
+        font-size: 11.5px;
+        color: var(--text-3);
+        display: flex; align-items: center; gap: 5px;
+      }
+      .server-preview {
+        margin-top: 8px;
+        display: flex; align-items: center; gap: 7px;
+        font-size: 11px;
+        font-family: ui-monospace, monospace;
+        background: var(--bg-subtle);
+        border: 1px dashed var(--border-strong);
+        border-radius: 8px;
+        padding: 7px 10px;
+        color: var(--text-2);
+      }
+      .server-preview .ok { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
 
-      .status {
-        margin-top: 16px;
-        padding: 12px;
+      /* Join code */
+      .join-row { display: flex; gap: 8px; align-items: stretch; }
+      .join-row .input-group { flex: 1; min-width: 0; }
+      #channel { text-transform: lowercase; }
+      .btn-dice {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 9px;
+        border: 1px solid var(--border-strong);
+        background: #fff;
+        color: var(--text-2);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+      }
+      .btn-dice:hover { background: var(--bg-subtle); color: var(--text); border-color: #c9c9cf; }
+      .btn-dice:disabled { opacity: 0.55; cursor: not-allowed; }
+      .join-code-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: #111113;
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 8px 10px 14px;
+        margin-top: 4px;
+      }
+      .join-code-value {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .join-code-actions { display: flex; gap: 6px; flex-shrink: 0; }
+      .btn-copy-sm {
+        height: 32px;
+        width: auto;
+        padding: 0 11px;
+        font-size: 12px;
+        border-radius: 8px;
+        background: #26262c;
+        color: #fff;
+        border: 1px solid #3a3a41;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 650;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      .btn-copy-sm:hover { background: #33333a; }
+      .btn-copy-sm.copied { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+      .field-error { color: var(--danger-text); font-size: 11.5px; margin-top: 6px; display: none; font-weight: 600; }
+      /* Copyable command chip */
+      .cmd-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        font-weight: 600;
+        background: #111113;
+        color: #e8e8ea;
+        border: 1px solid #111113;
         border-radius: 6px;
-        font-size: 14px;
-      }
-
-      .status.connected {
-        background-color: #1a472a;
-        color: #4ade80;
-      }
-
-      .status.disconnected {
-        background-color: #471a1a;
-        color: #ff9999;
-      }
-
-      .status.info {
-        background-color: #1a3147;
-        color: #66b3ff;
-      }
-
-      .toggle-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 20px;
-        margin-right: 8px;
-      }
-
-      .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-        margin: 0;
-      }
-
-      .toggle-slider {
-        position: absolute;
+        padding: 3px 7px;
+        height: auto;
+        width: auto;
         cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #444444;
-        transition: 0.4s;
-        border-radius: 20px;
+        transition: all 0.15s ease;
+        vertical-align: middle;
       }
+      .cmd-chip:hover { background: #26262b; }
+      .cmd-chip.copied { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
 
-      .toggle-slider:before {
-        position: absolute;
-        content: "";
-        height: 16px;
-        width: 16px;
-        left: 2px;
-        bottom: 2px;
-        background-color: white;
-        transition: 0.4s;
+      button {
+        border: none;
+        padding: 0 14px;
+        height: 38px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 650;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        letter-spacing: -0.01em;
+        width: 100%;
+        font-family: inherit;
+      }
+      button.primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(13,153,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+      button.primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13,153,255,0.4); }
+      button.primary:active { background: var(--primary-active); transform: translateY(0); }
+      button.secondary {
+        background: #fff;
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        box-shadow: var(--shadow-sm);
+      }
+      button.secondary:hover { background: #f7f7f8; border-color: #c9c9cf; }
+      button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+      button .spinner {
+        width: 14px; height: 14px;
+        border: 2px solid rgba(255,255,255,0.4);
+        border-top-color: #fff;
         border-radius: 50%;
-      }
-
-      input:checked + .toggle-slider {
-        background-color: #18a0fb;
-      }
-
-      input:checked + .toggle-slider:before {
-        transform: translateX(20px);
-      }
-
-      .section {
-        margin-bottom: 24px;
-      }
-
-      .hidden {
+        animation: spin 0.7s linear infinite;
         display: none;
       }
+      button.loading .spinner { display: inline-block; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .btn-row { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 
-      .logo {
-        width: 50px;
-        height: 50px;
+      .divider {
+        height: 1px; background: var(--border);
+        margin: 2px 0;
       }
 
-      .header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 16px;
+      /* MCP config */
+      #mcp-config { animation: fadeUp 0.25s ease; }
+      .section { margin-bottom: 0; }
+      .hidden { display: none !important; }
+      .mcp-desc {
+        font-size: 12px; color: var(--text-2);
+        margin: 0 0 10px 0;
       }
-
-      .header-text {
-        margin-left: 12px;
+      .mcp-desc code {
+        font-family: ui-monospace, monospace;
+        background: var(--neutral-bg);
+        border: 1px solid var(--border);
+        padding: 1px 5px; border-radius: 5px;
+        font-size: 11px;
       }
-
-      .header-text h1 {
+      .code-block {
+        position: relative;
+        background: var(--code-bg);
+        border-radius: 10px;
+        border: 1px solid #333338;
+        overflow: hidden;
+      }
+      .code-top {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 8px 10px;
+        border-bottom: 1px solid #333338;
+        background: #26262c;
+      }
+      .dots { display: flex; gap: 5px; }
+      .dots span { width: 8px; height: 8px; border-radius: 50%; display: block; }
+      .dots span:nth-child(1){ background:#FF5F57; } .dots span:nth-child(2){ background:#FEBC2E; } .dots span:nth-child(3){ background:#28C840; }
+      .code-lang { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9a9aa3; }
+      textarea#mcp-json {
+        width: 100%;
+        background: transparent;
+        color: #e6e6eb;
+        padding: 11px 12px;
+        border: none;
+        outline: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11.5px;
+        line-height: 1.6;
         margin: 0;
-        font-size: 16px;
+        resize: none;
+        min-height: 92px;
+      }
+      #btn-copy {
+        margin-top: 10px;
+        height: 34px;
+        font-size: 12.5px;
+      }
+      #btn-copy.copied {
+        background: var(--success-bg);
+        border-color: var(--success-border);
+        color: var(--success-text);
       }
 
-      .header-text p {
-        margin: 4px 0 0 0;
-        font-size: 12px;
-        color: #999999;
+      /* Progress */
+      .progress-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      #progress-message { font-size: 12.5px; font-weight: 600; color: var(--text); }
+      .progress-track {
+        width: 100%;
+        background: #ededf0;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+        position: relative;
       }
-
-      .tabs {
+      #progress-bar {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary) 0%, #7a5cff 100%);
+        border-radius: 999px;
+        transition: width 0.35s cubic-bezier(0.2,0,0,1);
+        position: relative;
+        overflow: hidden;
+      }
+      #progress-bar::after {
+        content: "";
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+        transform: translateX(-100%);
+        animation: shimmer 1.6s infinite;
+      }
+      @keyframes shimmer { 100% { transform: translateX(100%); } }
+      .progress-meta {
         display: flex;
-        border-bottom: 1px solid #444444;
-        margin-bottom: 16px;
+        justify-content: space-between;
+        margin-top: 7px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      #progress-status { color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; }
+      #progress-status.operation-complete { color: var(--success); }
+      #progress-status.operation-error { color: var(--danger); }
+      #progress-percentage {
+        font-family: ui-monospace, monospace;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      .operation-complete { color: var(--success); }
+      .operation-error { color: var(--danger); }
+
+      h2.section-h {
+        font-size: 11px;
+        font-weight: 750;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin: 0 0 10px 0;
       }
 
-      .tab {
-        padding: 8px 16px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        color: #999999;
+      footer {
+        margin-top: auto;
+        padding: 12px 16px 14px 16px;
+        border-top: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 11px; color: var(--text-3);
       }
-
-      .tab.active {
-        border-bottom: 2px solid #18a0fb;
-        color: #18a0fb;
-      }
-
-      .tab-content {
-        display: none;
-      }
-
-      .tab-content.active {
-        display: block;
-      }
-
-      .link {
-        color: #18a0fb;
-        text-decoration: none;
-        cursor: pointer;
-      }
-
-      .link:hover {
-        text-decoration: underline;
-      }
-
-      .header-logo {
-        padding: 16px;
-        border-radius: 16px;
-        background-color: #333;
-      }
-
-      .header-logo-image {
-        width: 24px;
-        height: 24px;
-        object-fit: contain;
-      }
-      /* Progress styles */
-      .operation-complete {
-        color: #4ade80;
-      }
-      .operation-error {
-        color: #ff9999;
-      }
+      footer .secure { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+      footer .secure i { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: block; }
     </style>
   </head>
 
   <body>
-    <div class="container">
-      <div class="header">
-        <div class="header-text">
-          <h1>Talk To Figma MCP Plugin</h1>
-          <p>Connect Figma to Cursor AI using MCP</p>
+    <div class="accent-bar"></div>
+    <div class="app">
+      <header class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
         </div>
-      </div>
+        <div class="brand-text">
+          <h1>Figma Plugin <span class="version-pill">v3.4</span></h1>
+          <p>Connect Figma to any AI via MCP</p>
+        </div>
+        <div id="header-pill" class="live-dot-wrap" title="Connection status">
+          <span class="dot"></span><span id="header-pill-text">Offline</span>
+        </div>
+      </header>
 
-      <div class="tabs">
-        <div id="tab-connection" class="tab active">Connection</div>
-        <div id="tab-about" class="tab">About</div>
-      </div>
+      <main>
+        <div id="content-connection" class="tab-content active">
+          <div class="card card-pad">
+            <div class="card-header">
+              <p class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+                Status
+              </p>
+            </div>
+            <div id="connection-status" class="status disconnected">
+              <div class="status-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+              </div>
+              <div class="status-message">Not connected to MCP server</div>
+            </div>
+          </div>
 
-      <div id="content-connection" class="tab-content active">
-        <div class="section">
-          <div style="margin-bottom: 16px">
-            <button id="btn-connect" class="primary" style="width: 100%">
-              Connect
+          <div class="card card-pad">
+            <div class="card-header">
+              <p class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                Server
+              </p>
+            </div>
+
+            <div id="port-container">
+              <label for="port">WebSocket port</label>
+              <div class="input-group">
+                <span class="input-prefix">ws://localhost :</span>
+                <input type="number" id="port" placeholder="3055" value="3055" min="1024" max="65535" />
+              </div>
+              <div class="server-preview"><span class="ok"></span><span id="server-preview-text">ws://localhost:3055 • relay active</span></div>
+              <div style="margin-top:12px">
+                <label for="channel">Join code</label>
+                <div class="join-row">
+                  <div class="input-group">
+                    <input type="text" id="channel" placeholder="e.g. figma-42" value="" maxlength="32" autocomplete="off" spellcheck="false" />
+                  </div>
+                  <button id="btn-randomize" class="btn-dice" title="Generate a random join code" type="button">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+                  </button>
+                </div>
+                <p class="field-error" id="channel-error">Use 4–32 chars: lowercase letters, numbers, - or _</p>
+                <p class="field-hint">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Same code on both sides — type one here, then paste it into your ai  <code style="font-family:ui-monospace,monospace;background:#efeff1;padding:1px 5px;border-radius:5px;">join_channel</code>.
+                </p>
+              </div>
+              <p class="field-hint">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                Run <button type="button" class="cmd-chip" onclick="copyRelayCommand(this)" title="Copy command">npm run socket <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button> locally, then connect.
+              </p>
+            </div>
+
+            <div class="btn-row">
+              <button id="btn-connect" class="primary">
+                <span class="spinner"></span>
+                <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+                <span class="btn-label">Connect</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="join-code-card" class="card card-pad">
+            <div class="card-header">
+              <p class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Join code
+              </p>
+              <span class="version-pill" id="join-code-state">ready</span>
+            </div>
+            <div class="join-code-display">
+              <span class="join-code-value" id="join-code-value">--------</span>
+              <div class="join-code-actions">
+                <button id="btn-copy-code" class="btn-copy-sm" type="button" title="Copy join code">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy code</span>
+                </button>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button id="btn-copy-command" class="secondary" type="button" style="height:34px;font-size:12.5px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+                <span>Copy this  command</span>
+              </button>
+            </div>
+            <p class="field-hint" style="margin-bottom:0">Paste the command into ai / cli  chat after connecting.</p>
+          </div>
+
+          <div id="mcp-config" class="card card-pad section hidden">
+            <div class="card-header">
+              <p class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+                MCP Configuration
+              </p>
+              <span class="version-pill">mcp.json</span>
+            </div>
+            <p class="mcp-desc">Paste this into your AI  <code>mcp.json</code> to enable AI tools.</p>
+            <div class="code-block">
+              <div class="code-top"><div class="dots"><span></span><span></span><span></span></div><span class="code-lang">json</span></div>
+              <textarea id="mcp-json" rows="5" readonly spellcheck="false"></textarea>
+            </div>
+            <button id="btn-copy" class="secondary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copy to Clipboard</span>
             </button>
           </div>
 
-          <div id="port-container">
-            <label for="port">WebSocket Server Port</label>
-            <input
-              type="number"
-              id="port"
-              placeholder="3055"
-              value="3055"
-              min="1024"
-              max="65535"
-            />
+          <div id="progress-container" class="card card-pad section hidden">
+            <div class="progress-head">
+              <h2 class="section-h" style="margin:0">Operation progress</h2>
+              <span id="progress-percentage">0%</span>
+            </div>
+            <div id="progress-message">No operation in progress</div>
+            <div class="progress-track" style="margin-top:8px">
+              <div id="progress-bar"></div>
+            </div>
+            <div class="progress-meta">
+              <div id="progress-status">Not started</div>
+              <div style="color:var(--text-3);font-weight:500">Live from plugin</div>
+            </div>
           </div>
         </div>
 
-        <div id="connection-status" class="status disconnected">
-          Not connected to Cursor MCP server
-        </div>
+      </main>
 
-        <div id="mcp-config" class="section hidden">
-          <h2>MCP Configuration</h2>
-          <p>
-            Copy this configuration to your <code>mcp.json</code> file in
-            Cursor:
-          </p>
-          <textarea
-            id="mcp-json"
-            rows="5"
-            readonly
-            style="
-              width: 100%;
-              background: #2d2d2d;
-              color: #e0e0e0;
-              padding: 12px;
-              border: 1px solid #444444;
-              border-radius: 4px;
-              font-family: monospace;
-              margin-bottom: 8px;
-            "
-          ></textarea>
-          <button id="btn-copy" class="secondary">Copy to Clipboard</button>
-        </div>
-
-        <!-- Add Progress Bar Section -->
-        <div id="progress-container" class="section hidden">
-          <h2>Operation Progress</h2>
-          <div id="progress-message">No operation in progress</div>
-          <div
-            style="
-              width: 100%;
-              background-color: #444;
-              border-radius: 4px;
-              margin-top: 8px;
-            "
-          >
-            <div
-              id="progress-bar"
-              style="
-                width: 0%;
-                height: 8px;
-                background-color: #18a0fb;
-                border-radius: 4px;
-                transition: width 0.3s;
-              "
-            ></div>
-          </div>
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              margin-top: 4px;
-              font-size: 12px;
-            "
-          >
-            <div id="progress-status">Not started</div>
-            <div id="progress-percentage">0%</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="content-about" class="tab-content">
-        <div class="section">
-          <h2>About Talk To Figma Plugin</h2>
-          <p>
-            This plugin allows Cursor AI to communicate with Figma, enabling
-            AI-assisted design operations.
-            <a
-              class="link"
-              onclick="window.open(`https://github.com/grab/cursor-talk-to-figma-mcp`, '_blank')"
-              >Github</a
-            >
-          </p>
-          <p>Version: 1.1.0</p>
-
-          <h2>How to Use</h2>
-          <ol>
-            <li>Make sure the MCP server is running in Cursor</li>
-            <li>Connect to the server using the port number (default: 3055)</li>
-            <li>Once connected, you can interact with Figma through Cursor</li>
-          </ol>
-          <p style="font-size: 11px; color: #888; margin-top: 16px;">
-            Anonymous usage analytics (plugin opens, command names, success/error) are sent to Google Analytics to help improve the plugin. No file content or personal data is collected.
-          </p>
-        </div>
-      </div>
+      <footer>
+        <span>Figma Plugin • v3.4</span>
+        <span class="secure"><i></i> Local & secure</span>
+      </footer>
     </div>
 
     <script>
@@ -395,8 +747,6 @@
       const analytics = (() => {
         const MEASUREMENT_ID = "G-9YH0ER9BXC";
         const API_SECRET = "Xqiy0AtbQt-Xbx4bdoc8Kw";
-        // Set ?_dbg=1 on the parent URL or window.__ANALYTICS_DEBUG__ = true
-        // to route events through GA4 DebugView and log validation errors.
         const DEBUG = window.__ANALYTICS_DEBUG__ === true;
         const HOST = "https://www.google-analytics.com";
         const PATH = DEBUG ? "/debug/mp/collect" : "/mp/collect";
@@ -439,9 +789,7 @@
             } else {
               req.catch(() => {});
             }
-          } catch (e) {
-            // analytics must never break the plugin
-          }
+          } catch (e) {}
         }
 
         return {
@@ -466,18 +814,122 @@
       // UI Elements
       const portInput = document.getElementById("port");
       const connectButton = document.getElementById("btn-connect");
+      const btnLabel = connectButton.querySelector(".btn-label");
+      const btnIcon = connectButton.querySelector(".btn-icon");
       const connectionStatus = document.getElementById("connection-status");
+      const headerPill = document.getElementById("header-pill");
+      const headerPillText = document.getElementById("header-pill-text");
+      const serverPreviewText = document.getElementById("server-preview-text");
+      const channelInput = document.getElementById("channel");
+      const channelError = document.getElementById("channel-error");
+      const randomizeButton = document.getElementById("btn-randomize");
+      const joinCodeCard = document.getElementById("join-code-card");
+      const joinCodeValue = document.getElementById("join-code-value");
+      const joinCodeState = document.getElementById("join-code-state");
+      const copyCodeButton = document.getElementById("btn-copy-code");
+      const copyCommandButton = document.getElementById("btn-copy-command");
 
       // Tabs
       const tabs = document.querySelectorAll(".tab");
       const tabContents = document.querySelectorAll(".tab-content");
 
-      // Add UI elements for progress tracking
+      // Progress
       const progressContainer = document.getElementById("progress-container");
       const progressBar = document.getElementById("progress-bar");
       const progressMessage = document.getElementById("progress-message");
       const progressStatus = document.getElementById("progress-status");
       const progressPercentage = document.getElementById("progress-percentage");
+
+      const ICONS = {
+        check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>',
+        plug: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>',
+        off: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>',
+        spin: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>'
+      };
+
+      function escapeHtml(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[c]));
+      }
+
+      // Join code: lowercase letters, numbers, "-" / "_", 4–32 chars
+      function sanitizeChannelName(raw) {
+        const cleaned = String(raw == null ? "" : raw).trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+        if (cleaned.length < 4 || cleaned.length > 32) return null;
+        return cleaned;
+      }
+
+      function refreshJoinCodeCard() {
+        const preview = state.channel || sanitizeChannelName(channelInput.value) || channelInput.value.trim() || "--------";
+        joinCodeValue.textContent = preview;
+        joinCodeState.textContent = state.connected ? "active" : "ready";
+      }
+
+      async function copyText(text, button) {
+        const value = String(text == null ? "" : text);
+        if (!value || value === "--------") return false;
+        let ok = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(value);
+            ok = true;
+          }
+        } catch (e) {}
+        if (!ok) {
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = value;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+          } catch (e) {}
+        }
+        if (ok && button) {
+          button.classList.add("copied");
+          const label = button.querySelector("span");
+          const original = label ? label.textContent : null;
+          if (label) label.textContent = "Copied!";
+          setTimeout(() => {
+            button.classList.remove("copied");
+            if (label && original) label.textContent = original;
+          }, 2000);
+        }
+        return ok;
+      }
+
+      function cursorCommandFor(channel) {
+        return 'Join my Figma session: run the join_channel tool with channel "' + channel + '"';
+      }
+
+      // Copyable "npm run socket" relay command chip (used via inline onclick)
+      function copyRelayCommand(btn) {
+        copyText("npm run socket", btn);
+      }
+
+      function setHeader(mode, text) {
+        headerPill.classList.remove("online", "connecting");
+        if (mode === "online") headerPill.classList.add("online");
+        if (mode === "connecting") headerPill.classList.add("connecting");
+        headerPillText.textContent = text;
+      }
+
+      function setButton(mode, label) {
+        connectButton.classList.remove("loading");
+        btnLabel.textContent = label;
+        if (mode === "connected") {
+          connectButton.className = "secondary";
+          btnIcon.style.display = "";
+        } else if (mode === "connecting") {
+          connectButton.className = "primary loading";
+        } else {
+          connectButton.className = "primary";
+          btnIcon.style.display = "";
+        }
+      }
 
       // Initialize UI
       function updateConnectionStatus(isConnected, message) {
@@ -486,33 +938,64 @@
         let statusMessage =
           message ||
           (isConnected
-            ? "Connected to Cursor MCP server"
-            : "Not connected to Cursor MCP server");
+            ? "Connected to MCP server"
+            : "Not connected to MCP server");
 
-        // Add instructions for localhost when disconnected
-        if (!isConnected) {
-          statusMessage += `<br><br>Run this in your terminal, then connect<br><code>bunx cursor-talk-to-figma-socket</code>`;
-        }
+        const isConnecting = !isConnected && /connecting/i.test(statusMessage);
 
-        connectionStatus.innerHTML = statusMessage;
-        connectionStatus.className = `status ${
-          isConnected ? "connected" : "disconnected"
-        }`;
-
-        // Update connect button text and style based on connection state
-        connectButton.textContent = isConnected ? "Disconnect" : "Connect";
-        connectButton.className = isConnected ? "secondary" : "primary";
-        portInput.disabled = isConnected;
-
-        // Show/hide MCP config section
-        const mcpConfig = document.getElementById("mcp-config");
-        mcpConfig.className = `section ${isConnected ? "" : "hidden"}`;
-
-        // Update MCP config text when showing
         if (isConnected) {
-          updateMcpConfig();
+          const channelMatch = String(statusMessage).match(/channel:\s*(<strong>)?([^<]+)(<\/strong>)?/i);
+          const channel = state.channel || (channelMatch ? channelMatch[2].trim() : null);
+          const safeChannel = channel ? escapeHtml(channel) : null;
+          connectionStatus.innerHTML =
+            '<div class="status-icon">' + ICONS.check + '</div>' +
+            '<div class="status-message"><strong>Connected</strong><br/>' +
+            (safeChannel
+              ? '<span style="opacity:0.8">Channel</span> <span class="channel-chip"><span class="pulse"></span>' + safeChannel + '</span>'
+              : statusMessage) +
+            '</div>';
+          setHeader("online", "Online");
+          setButton("connected", "Disconnect");
+        } else if (isConnecting) {
+          connectionStatus.innerHTML =
+            '<div class="status-icon">' + ICONS.spin + '</div>' +
+            '<div class="status-message"><strong>Connecting…</strong><br/><span style="opacity:.8">Opening WebSocket, please wait.</span></div>';
+          setHeader("connecting", "Connecting");
+          setButton("connecting", "Connecting…");
+          connectButton.classList.add("loading");
+        } else {
+          const clean = statusMessage.replace(/<br><br>.*$/s, "").replace(/<[^>]*>/g, "").trim() || "Not connected to MCP server";
+          const isError = /error|fail|refus|disconnect/i.test(clean) && !/Not connected/.test(clean);
+          connectionStatus.innerHTML =
+            '<div class="status-icon">' + ICONS.off + '</div>' +
+            '<div class="status-message"><strong>' + (isError ? "Connection failed" : "Not connected") + '</strong><br/>' +
+            '<span style="opacity:.85">' + clean + '</span>' +
+            '<div class="status-hint">Run this in your terminal, then retry:<br/><button type="button" class="cmd-chip" onclick="copyRelayCommand(this)" title="Copy command">npm run socket</button></div>' +
+            '</div>';
+          setHeader("offline", "Offline");
+          setButton("offline", "Connect");
         }
+
+        connectionStatus.className = "status " + (isConnected ? "connected" : isConnecting ? "info" : "disconnected");
+
+        portInput.disabled = isConnected;
+        channelInput.disabled = isConnected;
+        randomizeButton.disabled = isConnected;
+        refreshJoinCodeCard();
+
+        const mcpConfig = document.getElementById("mcp-config");
+        mcpConfig.className = "card card-pad section " + (isConnected ? "" : "hidden");
+
+        if (isConnected) updateMcpConfig();
       }
+
+      // Live server URL preview
+      function refreshPreview() {
+        const p = parseInt(portInput.value, 10) || 3055;
+        serverPreviewText.textContent = "ws://localhost:" + p + " • relay active";
+      }
+      portInput.addEventListener("input", refreshPreview);
+      refreshPreview();
 
       // Connect to WebSocket server
       async function connectToServer(port) {
@@ -523,21 +1006,22 @@
           }
 
           state.serverPort = port;
-          const wsUrl = `ws://localhost:${port}`;
+          const wsUrl = "ws://localhost:" + port;
 
           state.socket = new WebSocket(wsUrl);
 
           state.socket.onopen = () => {
-            // Generate random channel name
-            const channelName = generateChannelName();
+            const custom = sanitizeChannelName(channelInput.value);
+            const channelName = custom || generateChannelName();
+            if (!custom) channelInput.value = channelName;
             console.log("Joining channel:", channelName);
             state.channel = channelName;
-
-            // Join the channel using the same format as App.tsx
+            channelError.style.display = "none";
+            refreshJoinCodeCard();
             state.socket.send(
               JSON.stringify({
                 type: "join",
-                channel: channelName.trim(),
+                channel: channelName,
               })
             );
           };
@@ -548,25 +1032,25 @@
               console.log("Received message:", data);
 
               if (data.type === "system") {
-                // Successfully joined channel
                 if (data.message && data.message.result) {
                   state.connected = true;
                   const channelName = data.channel;
+                  state.channel = channelName;
+                  channelInput.value = channelName;
+                  refreshJoinCodeCard();
                   updateConnectionStatus(
                     true,
-                    `Connected to server in channel: <strong>${channelName}</strong>`
+                    "Connected to server in channel: <strong>" + escapeHtml(channelName) + "</strong>"
                   );
                   analytics.track("channel_join", {
                     port: state.serverPort,
                     channel: channelName,
                   });
-
-                  // Notify the plugin code
                   parent.postMessage(
                     {
                       pluginMessage: {
                         type: "notify",
-                        message: `Connected to Cursor MCP server on port ${port} in channel: ${channelName}`,
+                        message: "Connected to MCP server on port " + port + " in channel: " + channelName,
                       },
                     },
                     "*"
@@ -574,7 +1058,7 @@
                 }
               } else if (data.type === "error") {
                 console.error("Error:", data.message);
-                updateConnectionStatus(false, `Error: ${data.message}`);
+                updateConnectionStatus(false, "Error: " + data.message);
                 state.socket.close();
               }
 
@@ -592,7 +1076,7 @@
 
           state.socket.onerror = (error) => {
             console.error("WebSocket error:", error);
-            updateConnectionStatus(false, "Connection error");
+            updateConnectionStatus(false, "Connection error — is the relay running?");
             state.connected = false;
             state.socket = null;
           };
@@ -600,12 +1084,11 @@
           console.error("Connection error:", error);
           updateConnectionStatus(
             false,
-            `Connection error: ${error.message || "Unknown error"}`
+            "Connection error: " + (error.message || "Unknown error")
           );
         }
       }
 
-      // Disconnect from websocket server
       function disconnectFromServer() {
         if (state.socket) {
           state.socket.close();
@@ -615,25 +1098,19 @@
         }
       }
 
-      // Handle messages from the WebSocket
       async function handleSocketMessage(payload) {
         const data = payload.message;
         console.log("handleSocketMessage", data);
+        if (!data) return;
 
-        // If it's a response to a previous request
         if (data.id && state.pendingRequests.has(data.id)) {
           const { resolve, reject } = state.pendingRequests.get(data.id);
           state.pendingRequests.delete(data.id);
-
-          if (data.error) {
-            reject(new Error(data.error));
-          } else {
-            resolve(data.result);
-          }
+          if (data.error) reject(new Error(data.error));
+          else resolve(data.result);
           return;
         }
 
-        // If it's a new command
         if (data.command) {
           try {
             state.activeRequestId = data.id;
@@ -641,8 +1118,6 @@
               command: data.command,
               startedAt: Date.now(),
             });
-
-            // Send the command to the plugin code
             parent.postMessage(
               {
                 pluginMessage: {
@@ -655,7 +1130,6 @@
               "*"
             );
           } catch (error) {
-            // Send error back to WebSocket
             sendErrorResponse(
               data.id,
               error.message || "Error executing command"
@@ -679,89 +1153,36 @@
         analytics.track("command_executed", params);
       }
 
-      // Send a command to the WebSocket server
-      async function sendCommand(command, params) {
-        return new Promise((resolve, reject) => {
-          if (!state.connected || !state.socket) {
-            reject(new Error("Not connected to server"));
-            return;
-          }
-
-          const id = generateId();
-          state.pendingRequests.set(id, { resolve, reject });
-
-          state.socket.send(
-            JSON.stringify({
-              id,
-              type: "message",
-              channel: state.channel,
-              message: {
-                id,
-                command,
-                params,
-              },
-            })
-          );
-
-          // Set timeout to reject the promise after 30 seconds
-          setTimeout(() => {
-            if (state.pendingRequests.has(id)) {
-              state.pendingRequests.delete(id);
-              reject(new Error("Request timed out"));
-            }
-          }, 30000);
-        });
-      }
-
-      // Send success response back to WebSocket
       function sendSuccessResponse(id, result) {
-        if (!state.connected || !state.socket) {
-          console.error("Cannot send response: socket not connected");
-          return;
-        }
-
+        if (!state.connected || !state.socket) return;
         state.socket.send(
           JSON.stringify({
             id,
             type: "message",
             channel: state.channel,
-            message: {
-              id,
-              result,
-            },
+            message: { id, result },
           })
         );
       }
 
-      // Send error response back to WebSocket
       function sendErrorResponse(id, errorMessage) {
-        if (!state.connected || !state.socket) {
-          console.error("Cannot send error response: socket not connected");
-          return;
-        }
-
+        if (!state.connected || !state.socket) return;
         state.socket.send(
           JSON.stringify({
             id,
             type: "message",
             channel: state.channel,
-            message: {
-              id,
-              error: errorMessage,
-              result: {},
-            },
+            message: { id, error: errorMessage, result: {} },
           })
         );
       }
 
-      // Helper to generate unique IDs
       function generateId() {
         return (
           Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
         );
       }
 
-      // Add this function after the generateId() function
       function generateChannelName() {
         const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
         let result = "";
@@ -773,25 +1194,30 @@
         return result;
       }
 
-      // Tab switching
       tabs.forEach((tab) => {
         tab.addEventListener("click", () => {
           tabs.forEach((t) => t.classList.remove("active"));
           tabContents.forEach((c) => c.classList.remove("active"));
-
           tab.classList.add("active");
           const contentId = "content-" + tab.id.split("-")[1];
           document.getElementById(contentId).classList.add("active");
         });
       });
 
-      // Replace the separate connect/disconnect button listeners with a single toggle
       connectButton.addEventListener("click", () => {
         if (state.connected) {
           updateConnectionStatus(false, "Disconnecting...");
           connectionStatus.className = "status info";
+          setHeader("connecting", "Closing");
           disconnectFromServer();
         } else {
+          const raw = channelInput.value;
+          if (raw.trim() !== "" && !sanitizeChannelName(raw)) {
+            channelError.style.display = "block";
+            channelInput.focus();
+            return;
+          }
+          channelError.style.display = "none";
           const port = parseInt(portInput.value, 10) || 3055;
           updateConnectionStatus(false, "Connecting...");
           connectionStatus.className = "status info";
@@ -799,21 +1225,41 @@
         }
       });
 
-      // Function to update progress UI
+      // Join-code input wiring
+      channelInput.value = generateChannelName();
+      channelInput.addEventListener("input", () => {
+        channelInput.value = channelInput.value.toLowerCase().replace(/[^a-z0-9-_]/g, "").slice(0, 32);
+        channelError.style.display = "none";
+        refreshJoinCodeCard();
+      });
+      randomizeButton.addEventListener("click", () => {
+        channelInput.value = generateChannelName();
+        channelError.style.display = "none";
+        refreshJoinCodeCard();
+        channelInput.focus();
+      });
+      copyCodeButton.addEventListener("click", () => {
+        const code = state.channel || sanitizeChannelName(channelInput.value) || channelInput.value.trim();
+        copyText(code, copyCodeButton).then((ok) => {
+          if (ok) analytics.track("join_code_copied", { connected: state.connected ? 1 : 0 });
+        });
+      });
+      copyCommandButton.addEventListener("click", () => {
+        const code = state.channel || sanitizeChannelName(channelInput.value) || channelInput.value.trim();
+        copyText(cursorCommandFor(code), copyCommandButton).then((ok) => {
+          if (ok) analytics.track("join_command_copied", { connected: state.connected ? 1 : 0 });
+        });
+      });
+      refreshJoinCodeCard();
+
       function updateProgressUI(progressData) {
-        // Show progress container if hidden
         progressContainer.classList.remove("hidden");
-
-        // Update progress bar
-        const progress = progressData.progress || 0;
-        progressBar.style.width = `${progress}%`;
-        progressPercentage.textContent = `${progress}%`;
-
-        // Update message
+        const progress = Math.max(0, Math.min(100, progressData.progress || 0));
+        progressBar.style.width = progress + "%";
+        progressPercentage.textContent = Math.round(progress) + "%";
         progressMessage.textContent =
           progressData.message || "Operation in progress";
 
-        // Update status text based on operation state
         if (progressData.status === "started") {
           progressStatus.textContent = "Started";
           progressStatus.className = "";
@@ -823,8 +1269,6 @@
         } else if (progressData.status === "completed") {
           progressStatus.textContent = "Completed";
           progressStatus.className = "operation-complete";
-
-          // Hide progress container after 5 seconds
           setTimeout(() => {
             progressContainer.classList.add("hidden");
           }, 5000);
@@ -834,15 +1278,8 @@
         }
       }
 
-      // Send operation progress update to server
       function sendProgressUpdateToServer(progressData) {
-        if (!state.connected || !state.socket) {
-          console.error("Cannot send progress update: socket not connected");
-          return;
-        }
-
-        console.log("Sending progress update to server:", progressData);
-
+        if (!state.connected || !state.socket) return;
         const requestId = state.activeRequestId || progressData.commandId;
         state.socket.send(
           JSON.stringify({
@@ -858,23 +1295,9 @@
         );
       }
 
-      // Reset progress UI
-      function resetProgressUI() {
-        progressContainer.classList.add("hidden");
-        progressBar.style.width = "0%";
-        progressMessage.textContent = "No operation in progress";
-        progressStatus.textContent = "Not started";
-        progressStatus.className = "";
-        progressPercentage.textContent = "0%";
-      }
-
-      // Listen for messages from the plugin code
       window.onmessage = (event) => {
         const message = event.data.pluginMessage;
         if (!message) return;
-
-        console.log("Received message from plugin:", message);
-
         switch (message.type) {
           case "connection-status":
             updateConnectionStatus(message.connected, message.message);
@@ -886,19 +1309,15 @@
             connectButton.click();
             break;
           case "command-result":
-            // Forward the result from plugin code back to WebSocket
             sendSuccessResponse(message.id, message.result);
             trackCommandResult(message.id, true);
             break;
           case "command-error":
-            // Forward the error from plugin code back to WebSocket
             sendErrorResponse(message.id, message.error);
             trackCommandResult(message.id, false, message.error);
             break;
           case "command_progress":
-            // Update UI with progress information
             updateProgressUI(message);
-            // Forward progress update to server
             sendProgressUpdateToServer(message);
             break;
           case "analytics-client-id":
@@ -907,19 +1326,22 @@
         }
       };
 
-      // Add this to the script section, after all the other event listeners
       document.getElementById("btn-copy").addEventListener("click", () => {
         const textarea = document.getElementById("mcp-json");
-        textarea.select();
-        document.execCommand("copy");
         const button = document.getElementById("btn-copy");
-        button.textContent = "Copied!";
+        textarea.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(textarea.value).catch(() => {});
+        }
+        button.classList.add("copied");
+        button.querySelector("span").textContent = "Copied!";
         setTimeout(() => {
-          button.textContent = "Copy to Clipboard";
+          button.classList.remove("copied");
+          button.querySelector("span").textContent = "Copy to Clipboard";
         }, 2000);
       });
 
-      // Add this function to the script section
       function updateMcpConfig() {
         const mcpConfig = {
           mcpServers: {
@@ -929,13 +1351,15 @@
             },
           },
         };
-
         document.getElementById("mcp-json").value = JSON.stringify(
           mcpConfig,
           null,
           2
         );
       }
+
+      // initial paint
+      updateConnectionStatus(false, "Not connected to MCP server");
     </script>
   </body>
 </html>

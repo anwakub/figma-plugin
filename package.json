@@ -15,6 +15,9 @@
   "scripts": {
     "start": "bun run dist/server.js",
     "socket": "bun run src/socket.ts",
+    "socket:node": "node socket-node.js",
+    "roblox:relay": "bun run src/roblox_mcp/relay.ts",
+    "roblox:mcp": "bun run dist/roblox-server.js",
     "setup": "./scripts/setup.sh",
     "build": "tsup",
     "build:watch": "tsup --watch",

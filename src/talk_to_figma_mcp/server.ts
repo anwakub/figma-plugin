@@ -54,12 +54,13 @@ interface setInstanceOverridesResult {
 }
 
 // Custom logging functions that write to stderr instead of stdout to avoid being captured
+const quietLogs = process.env.FIGMA_MCP_QUIET === "1";
 const logger = {
-  info: (message: string) => process.stderr.write(`[INFO] ${message}\n`),
-  debug: (message: string) => process.stderr.write(`[DEBUG] ${message}\n`),
-  warn: (message: string) => process.stderr.write(`[WARN] ${message}\n`),
+  info: (message: string) => { if (!quietLogs) process.stderr.write(`[INFO] ${message}\n`); },
+  debug: (message: string) => { if (!quietLogs) process.stderr.write(`[DEBUG] ${message}\n`); },
+  warn: (message: string) => { if (!quietLogs) process.stderr.write(`[WARN] ${message}\n`); },
   error: (message: string) => process.stderr.write(`[ERROR] ${message}\n`),
-  log: (message: string) => process.stderr.write(`[LOG] ${message}\n`)
+  log: (message: string) => { if (!quietLogs) process.stderr.write(`[LOG] ${message}\n`); }
 };
 
 // WebSocket connection and request tracking
@@ -2380,6 +2381,54 @@ server.tool(
   }
 );
 
+server.tool(
+  "set_prototype_reactions",
+  "Create real clickable Figma prototype interactions on nodes, including navigation, overlays, back, and close actions",
+  {
+    items: z.array(z.object({
+      nodeId: z.string().optional().describe("ID of the clickable source node"),
+      sourceFrameId: z.string().optional().describe("Frame to search when nodeId is omitted"),
+      nodeName: z.string().optional().describe("Exact node name to match within sourceFrameId"),
+      nodeType: z.string().optional().describe("Exact Figma node type to match within sourceFrameId"),
+      characters: z.string().optional().describe("Exact text characters to match within sourceFrameId"),
+      occurrence: z.number().int().min(0).optional().describe("Zero-based match index when multiple nodes match"),
+      targetAncestorDepth: z.number().int().min(0).optional().describe("Apply the reaction to this many parent levels above the matched node"),
+      trigger: z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "MOUSE_ENTER", "MOUSE_LEAVE", "MOUSE_DOWN", "MOUSE_UP"]).optional().describe("Prototype trigger; defaults to ON_CLICK"),
+      append: z.boolean().optional().describe("Append to existing reactions instead of replacing them"),
+      action: z.object({
+        type: z.enum(["NAVIGATE", "OVERLAY", "BACK", "CLOSE", "CLEAR"]),
+        destinationId: z.string().optional().describe("Destination frame ID for NAVIGATE or OVERLAY"),
+        overlayRelativePosition: z.object({
+          x: z.number(),
+          y: z.number(),
+        }).optional(),
+      }),
+    })).min(1),
+  },
+  async ({ items }: any) => {
+    try {
+      const result = await sendCommandToFigma("set_prototype_reactions", { items });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Prototype interactions updated: ${JSON.stringify(result)}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error setting prototype interactions: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
 // Create Connectors Tool
 server.tool(
   "set_default_connector",
@@ -2650,6 +2699,7 @@ type FigmaCommand =
   | "set_layout_sizing"
   | "set_item_spacing"
   | "get_reactions"
+  | "set_prototype_reactions"
   | "set_default_connector"
   | "create_connections"
   | "set_focus"
@@ -2790,6 +2840,24 @@ type CommandParams = {
     types: Array<string>;
   };
   get_reactions: { nodeIds: string[] };
+  set_prototype_reactions: {
+    items: Array<{
+      nodeId?: string;
+      sourceFrameId?: string;
+      nodeName?: string;
+      nodeType?: string;
+      characters?: string;
+      occurrence?: number;
+      targetAncestorDepth?: number;
+      trigger?: "ON_CLICK" | "ON_HOVER" | "ON_PRESS" | "MOUSE_ENTER" | "MOUSE_LEAVE" | "MOUSE_DOWN" | "MOUSE_UP";
+      append?: boolean;
+      action: {
+        type: "NAVIGATE" | "OVERLAY" | "BACK" | "CLOSE" | "CLEAR";
+        destinationId?: string;
+        overlayRelativePosition?: { x: number; y: number };
+      };
+    }>;
+  };
   set_default_connector: {
     connectorId?: string | undefined;
   };

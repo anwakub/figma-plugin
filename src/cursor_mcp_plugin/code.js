@@ -1,4 +1,4 @@
-// This is the main code file for the Cursor MCP Figma plugin
+// This is the main code file for the Figma Plugin
 // It handles Figma API commands
 
 // Plugin state
@@ -246,6 +246,8 @@ async function handleCommand(command, params) {
         throw new Error("Missing or invalid nodeIds parameter");
       }
       return await getReactions(params.nodeIds);  
+    case "set_prototype_reactions":
+      return await setPrototypeReactions(params);
     case "set_default_connector":
       return await setDefaultConnector(params);
     case "create_connections":
@@ -647,6 +649,124 @@ async function getReactions(nodeIds) {
   } catch (error) {
     throw new Error(`Failed to get reactions: ${error.message}`);
   }
+}
+
+async function setPrototypeReactions(params) {
+  if (!params || !Array.isArray(params.items) || params.items.length === 0) {
+    throw new Error("Missing or invalid items parameter");
+  }
+
+  const results = [];
+
+  for (const item of params.items) {
+    try {
+      if (!item || (!item.nodeId && !item.sourceFrameId) || !item.action || !item.action.type) {
+        throw new Error("Each item requires nodeId or sourceFrameId, plus action.type");
+      }
+
+      let node = item.nodeId ? await figma.getNodeByIdAsync(item.nodeId) : null;
+      if (!node && item.sourceFrameId) {
+        const sourceFrame = await figma.getNodeByIdAsync(item.sourceFrameId);
+        if (!sourceFrame) throw new Error(`Source frame not found: ${item.sourceFrameId}`);
+
+        const candidates = [sourceFrame];
+        if (typeof sourceFrame.findAll === "function") candidates.push(...sourceFrame.findAll(() => true));
+        const matches = candidates.filter((candidate) => {
+          if (item.nodeName && candidate.name !== item.nodeName) return false;
+          if (item.nodeType && candidate.type !== item.nodeType) return false;
+          if (item.characters !== undefined) {
+            if (candidate.type !== "TEXT" || candidate.characters !== item.characters) return false;
+          }
+          return Boolean(item.nodeName || item.nodeType || item.characters !== undefined);
+        });
+
+        node = matches[item.occurrence || 0] || null;
+        let ancestorDepth = item.targetAncestorDepth || 0;
+        while (node && ancestorDepth > 0) {
+          node = node.parent;
+          ancestorDepth -= 1;
+        }
+      }
+      if (!node) {
+        throw new Error(`Clickable node not found for item: ${JSON.stringify(item)}`);
+      }
+      if (typeof node.setReactionsAsync !== "function") {
+        throw new Error(`Node does not support prototype reactions: ${item.nodeId}`);
+      }
+
+      const actionType = item.action.type;
+      if (actionType === "CLEAR") {
+        await node.setReactionsAsync([]);
+        results.push({
+          success: true,
+          nodeId: node.id,
+          nodeName: node.name,
+          actionType,
+          destinationId: null,
+        });
+        continue;
+      }
+      let reactionAction;
+
+      if (actionType === "NAVIGATE" || actionType === "OVERLAY") {
+        if (!item.action.destinationId) {
+          throw new Error(`${actionType} requires destinationId`);
+        }
+
+        const defaultTransition = actionType === "OVERLAY"
+          ? { type: "DISSOLVE", easing: { type: "EASE_OUT" }, duration: 0.2 }
+          : { type: "SMART_ANIMATE", easing: { type: "EASE_OUT" }, duration: 0.25 };
+
+        reactionAction = {
+          type: "NODE",
+          destinationId: item.action.destinationId,
+          navigation: actionType,
+          transition: item.action.transition || defaultTransition,
+          preserveScrollPosition: false,
+        };
+
+        if (actionType === "OVERLAY" && item.action.overlayRelativePosition) {
+          reactionAction.overlayRelativePosition = item.action.overlayRelativePosition;
+        }
+      } else if (actionType === "BACK" || actionType === "CLOSE") {
+        reactionAction = { type: actionType };
+      } else {
+        throw new Error(`Unsupported prototype action type: ${actionType}`);
+      }
+
+      const reaction = {
+        trigger: { type: item.trigger || "ON_CLICK" },
+        actions: [reactionAction],
+      };
+
+      const existingReactions = item.append && Array.isArray(node.reactions)
+        ? node.reactions
+        : [];
+      await node.setReactionsAsync([...existingReactions, reaction]);
+
+      results.push({
+        success: true,
+        nodeId: node.id,
+        nodeName: node.name,
+        actionType,
+        destinationId: item.action.destinationId || null,
+      });
+    } catch (error) {
+      results.push({
+        success: false,
+        nodeId: item && item.nodeId ? item.nodeId : null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  const succeeded = results.filter((result) => result.success).length;
+  return {
+    success: succeeded === results.length,
+    succeeded,
+    failed: results.length - succeeded,
+    results,
+  };
 }
 
 async function readMyDesign() {
